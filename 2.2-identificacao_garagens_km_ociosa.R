@@ -1,9 +1,11 @@
+
+# 0) Carregar pacotes -------------------------------------------------------------------------
+
 library(dplyr) # manipulacao de dados
 library(data.table) # abrir e salvar dados (por enquanto)
 library(ggplot2) # graficos e mapas
 library(mapview) # visualizacao de dados espaciais
 library(sf) # operacoes com dados espaciais
-
 options(scipen=999)
 
 # Abrir dados de GPS do BRT
@@ -21,13 +23,18 @@ options(scipen=999)
 # linha_amostra <- 2336
 linha_amostra <- 309 # problematica
 
-# 1.1) Abrir arquivo de GPS
+# 1) Abrir arquivo de GPS e filtrar linha -------------------------------
 gps <- fread("gps_rio_amostra.csv")
 # selecionar coluna de interesse
 gps <- gps %>% select(datahora, ordem, linha, lon = longitude, lat = latitude)
 
 
-# 1.2) Filtrar a linha 
+
+
+
+
+
+# 2) Filtrar a linha dos dados de GPS -----------------------------------
 gps_linha <- gps %>%
   # extrair a hora do registro de GPS
   mutate(hora = format(datahora, "%H")) %>%
@@ -36,23 +43,38 @@ gps_linha <- gps %>%
   # filtrar somente al inha 864
   filter(linha == linha_amostra)
 
-# 1.3) Abrir arquivo com as linhas
+
+
+
+
+
+
+# 3) Abrir arquivo com as linhas ---------------------------------------
 linhas_shape <- st_read("data-raw/2020-ago-30/2020-ago-30.shp")
 head(linhas_shape)
 
-# 1.4) Selecionar colunas necessarias
+# 3.1) Selecionar colunas necessarias
 linhas_shape_select <- linhas_shape %>%
   # selecionar a coluna 'ref' e renomea-la para 'linha'
   select(linha = ref, name)
 
-# 1.5) Selecionar linha de interesse
+
+
+
+
+
+
+# 4) Selecionar linha de interesse -------------------------------
 linhas_shape_filter <- linhas_shape_select %>%
   filter(linha == linha_amostra)
 
-# 1.6) Criar buffer em torno da linha para facilitar visualizacao
+
+
+
+
+# 5) Criar buffer em torno da linha para facilitar visualizacao -------------------------
 # o argumento em distancia esta em graus, onde o 1 grau representa 111139 metros
 linhas_shape_filter_buffer <- st_buffer(linhas_shape_filter, dist = 0.001)
-mapview(linhas_shape_filter_buffer)
 
 # como temos o shape da ida e da volta, eh interessante junta-los em uma mesma observacao
 # isso eh feito atraves da combinacao 'group_by' e 'summarise', so que agora eh uma operacao espacial
@@ -61,8 +83,13 @@ linhas_shape_filter_buffer <- linhas_shape_filter_buffer %>%
   group_by(linha) %>%
   summarise(do_union = TRUE)
 
-# 1.6) Transformar os dados de GPS para formato espacial sf
-# isos vai permitir fazer a visualizacao espacial desses dados
+mapview(linhas_shape_filter_buffer)
+
+
+
+
+
+# 6) Transformar os dados de GPS para formato espacial sf ----------------------------------
 
 # primeiro, trocar a , por . nas coordenadas
 gps_linha_coords <- gps_linha %>%
@@ -74,31 +101,55 @@ gps_linha_coords <- gps_linha %>%
 gps_linha_sf <- st_as_sf(gps_linha_coords, coords = c("lon", "lat"), crs = 4326, remove = FALSE)
 
 
-# 1.7) Visualizar
+
+
+
+
+
+
+
+# 7) Visualizar -------------------------------------
 
 # visualizacao interativa
 mapview(gps_linha_sf) + mapview(linhas_shape_filter_buffer)
 
-# 1.8) Verificar quais pontos de GPS estão dentro/fora dessa linha com sf::st_join
-gps_join_linha <- st_join(gps_linha_sf, linhas_shape_filter_buffer)
+
+
+
+
+
+
+
+
+
+# 8) Verificar quais pontos de GPS estão dentro/fora dessa linha com sf::st_join --------------
 
 # filtrar somente os pontos de GPS que estao FORA da linha
 # para fazer isso, eh preciso filtrar os pontos de GPS que nao tiveram equivalente na juncao espacial
 # esses pontos sao identificados quando um ponto de GPS tem um valor NA em alguma coluna que veio do shape das linhas
-# uma coluna que veio do shape das linhas foi a coluna 'name', e utilizaremos ela para fazer esse filtro
 
+# para identificar a linha que esta no GPS e a que vai vir do shape das linhas, eh preciso diferenciar
+# o nome das colunas de linha das duas bases:
+gps_linha_sf <- gps_linha_sf %>% rename(linha_gps = linha)
+linhas_shape_filter_buffer <- linhas_shape_filter_buffer %>% rename(linha_shape = linha)
+
+# realizar a intersecao espacial
+gps_join_linha <- st_join(gps_linha_sf, linhas_shape_filter_buffer)
+
+# a coluna 'linha_shape' veio dos shapes das linhas, entao todos as observacoes em que ela esteja como NA
+# serao observacoes do GPS que estao FORA da linha
 gps_join_linha_fora <- gps_join_linha %>%
   # para filtrar os pontos de GPS que nao estao inseridos na linha, pegamos os NA da coluna 'name' 
-  filter(is.na(linha.y))
+  filter(is.na(linha_shape))
 
 # qual a porcentagem dos pontos que estao dentro da linha?
 # identificar quando um ponto esta dentro/fora
-
 gps_join_linha %>%
+  # deletar a parte espacial do dataframe que nao vamos precisar aqui (fica bem + rapido)
   st_set_geometry(NULL) %>%
-  count(linha.y)
+  count(linha_shape) %>%
+  mutate(perc = n / sum(n))
   
-
 # visualizar esses pontos
 mapview(gps_join_linha_fora) + mapview(linhas_shape_filter_buffer)
 
@@ -106,16 +157,115 @@ mapview(gps_join_linha_fora) + mapview(linhas_shape_filter_buffer)
 
 
 
+
+
+
+
+
+# 9) Fazer limpeza nos dados de GPS -----------------------------------------------------------
+
+#' Foram observados diversos pontos mortos de GPS na linha, o que estava prejudicando as analises
+#' Situacoes como centanas de registros de GPS de uma linha sendo identificados em uma mesma localidade
+#' Ainda nao eh possivel saber se essas concentracoes de pontos sao uma garagem, final de linha, ou
+#' qualquer outra coisa
+#' Para contornar isso, essa etapa identifica quando essas concentracoes acontecem e diminui a quantidade
+#' de pontos das concentracoes, de forma a garantir que os pontos de GPS que estao na base sejam de
+#' quando o veiculo esteja realmente em movimento
+
+
+# 9.1) Ordenar os dados de GPS por carro e linha
+gps_join_linha_fora1 <- arrange(gps_join_linha_fora, ordem, datahora)
+
+# # Extrair o momento preciso
+# gps_join_linha_fora1 <- gps_join_linha_fora1 %>% mutate(momento := as.ITime(format(datahora, "%H:%M:%S")))
+# gps_join_linha_fora1 <- gps_join_linha_fora1 %>% group_by(ordem) %>% mutate(headway := -(as.integer(momento - dplyr::lead(momento)))) %>% ungroup()
+
+# Calcular a distancia entre um ponto e o seu ponto anterior
+# Isso vai ajudar a identificar quando um veiculo se manteve imovel/se moveu muito pouco
+
+# estabelecer funcao para calcular dist entre um ponto e seu anterior
+get.dist <- function(lon, lat) geosphere::distHaversine(tail(cbind(lon,lat),-1), head(cbind(lon,lat),-1))
+
+# Calcular essa distancia, agrupando por veiculo
+gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
+  group_by(ordem) %>%
+  mutate(dist = c(0, get.dist(as.numeric(lon), as.numeric(lat))))
+
+#' Aqui, vamos estabelecer a velocidade de 50 metros como uma distancia limite entre um ponto e seu anterior
+#' para identificar esses pontos como uma 'aglomeracao' onde o veiculo estava parado/pouco se mexendo
+#' se a distancia for maior que 50m, sera atribuido um conjunto de letras que sao diferentes
+#' se a distancia for menor que 50m, sera atribuido o numeral 1
+#' isso eh um recurso de programacao para ajudar no agrupamento desses pontos
+gps_join_linha_fora1 <- gps_join_linha_fora1 %>% 
+  mutate(oi = ifelse(dist > 50, c("a", "b", "c"), "1"))
+
+# agrupar esses pontos
+#' a funcao 'rleid' cria numeros que vao percorrendo o data.frame e se mantem iguais quando a coluna 
+#' de referencia for igual
+#' por ex, quando a coluna de referencia estiver com os valores "a b c", a funcao vai retornar "1 2 3"
+#' porem, quando a coluna de referencia estiver com os valores "1 1 1", a funcao vai retornar "4 4 4",
+#' respeitando a sequencia que foi estabelecida
+gps_join_linha_fora1 <- gps_join_linha_fora1 %>% mutate(seq = rleid(oi))
+
+
+# Com as concentracoes ja identificadas, eh necessario identificar quando essas concentracoes
+# devem ser diminuidas
+# O criterio estabelecido aqui estabelece que uma concentracao com mais de 15 pontos de GPS deve ser
+# reduzida para 2 pontos, que vao representar o primeiro e o ultimo ponto da concentracao
+
+# Primeiramente, eh calculado o tamanho da concentracao
+# A funcao 'add_count' adiciona uma nova coluna com a quantidade de cada 'seq'
+gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
+  add_count(seq)
+
+# Fazer entao o filtro para concentracoes que tenham mais de 15 pontos - essas vao ser reduzidas
+gps_join_linha_fora2 <- gps_join_linha_fora1 %>%
+  # fazer o filtro de 15 pontos
+  # agruparar por veiculo e sequencia
+  filter(n >= 10)  %>%
+  group_by(ordem, seq) %>%
+  # a funcao 'slice' serve para extrair as observacoes por posicao - nesse caso, vamos tirar a 
+  # primeira (1) e a ultima (n())
+  slice(1, n()) %>%
+  ungroup()
+
+# Os pontos concentrados que foram reduzidos precisam ser colados a base original
+# Para isso, precisamos primeiro manter somente os nao-concentrados da base original
+gps_join_linha_fora1_new <- gps_join_linha_fora1 %>%
+  # filtrar somente os nao-concetrados, ou seja, as concentracoes com menos de 10 pontos
+  filter(n < 10) %>%
+  ungroup()
+
+# Em seguida, juntar os nao-concentrados com os concentrados corridigos 
+gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
+  # a funcao rbind faz essa juncao
+  rbind(gps_join_linha_fora2) %>%
+  # ordenar novamente por veiculo e hora
+  arrange(ordem, datahora)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 2) Verificar se esses pontos podem fazer parte de outra(s) linha(s) -------------------------
 
-# para verificar se esses pontos que estao fora da linha 864 podem fazer parte de outras linhas,
+# para verificar se esses pontos que estao fora da linha  podem fazer parte de outras linhas,
 # vamos pegar o shape de todas as linhas do sistema e ver se esses pontos se encaixam de alguma forma
 # em alguma outra linha
 
-# 2.1) Fazer novamente o buffer, mas em relacao a todas as outras linhas
+# 2.1) Fazer novamente o buffer, mas em relacao a todas as outras linhas (isso pode demorar)
 linhas_shape_buffer <- st_buffer(linhas_shape_select, dist = 0.001)
 
-# fazer novamenta a juncao da ida com a volta
+# fazer novamenta a juncao da ida com a volta  (isso pode demorar)
 linhas_shape_buffer <- linhas_shape_buffer %>%
   group_by(linha) %>%
   summarise(do_union = TRUE)
@@ -123,52 +273,10 @@ linhas_shape_buffer <- linhas_shape_buffer %>%
 # 2.2) Fazer entao a juncao espacial das duas bases
 
 # primeiro, selecionar somente as colunas necessarias
-gps_join_linha_fora <- gps_join_linha_fora %>% select(datahora, ordem, hora, lon, lat)
-
-# fazer buffer de 50 metros e deletar pontos que estejam na mesma localizacao
-# gps_join_linha_fora1 <-  st_buffer(gps_join_linha_fora, dist = 0.0005) # 50 metros
-# mapview(gps_join_linha_fora1)
-
-gps_join_linha_fora1 <- arrange(gps_join_linha_fora, ordem, datahora)
-
-# calcular intervalo
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>% mutate(momento := as.ITime(format(datahora, "%H:%M:%S")))
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>% group_by(ordem) %>% mutate(headway := -(as.integer(momento - dplyr::lead(momento)))) %>% ungroup()
+gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, ordem, hora, lon, lat)
 
 
-get.dist <- function(lon, lat) geosphere::distHaversine(tail(cbind(lon,lat),-1), head(cbind(lon,lat),-1))
-
-# identificar distancia para o ponto anterior
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
-  group_by(ordem) %>%
-  mutate(dist = c(0, get.dist(as.numeric(lon), as.numeric(lat))))
-
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>% 
-  # group_by(ordem) %>%
-  mutate(oi = ifelse(dist > 50, c("a", "b", "c"), "1"))
-
-
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>% mutate(seq = rleid(oi))
-
-# calcular o tamanho de cada grupo
-gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
-  add_count(seq)
-
-# para os grupos com mais de 20 pontos, pegar so o primeiro e o ultimo
-gps_join_linha_fora2 <- gps_join_linha_fora1 %>%
-  group_by(ordem) %>%
-  filter(n >= 20) %>%
-  slice(1, n()) %>%
-  ungroup()
-
-gps_join_linha_fora1_new <- gps_join_linha_fora1 %>%
-  group_by(ordem) %>%
-  filter(n < 20) %>%
-  ungroup() %>%
-  rbind(gps_join_linha_fora2) %>%
-  arrange(ordem, datahora)
-
-# calcular a quantidade dep ontos de gps por veiculo
+# calcular a quantidade de pontos de gps por veiculo
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
   add_count(ordem, name = "pontos_por_veiculo")
 

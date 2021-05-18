@@ -50,10 +50,10 @@ ggplot() +
   labs(x = "Linha", y = "Veiculos", title = "Quantidade de veiculos, por dia")
 
 # salvar o plot
-ggsave("plot1.png")
+ggsave("figuras/plot1.png")
 
 # 1.5) Salvar os dados
-fwrite(gps_veiculos_linhas, "rio_veiculos_linhas.csv")
+fwrite(gps_veiculos_linhas, "data/rio_veiculos_linhas.csv")
 
 
 # bonus: calcular quantidade de veiculos por linha e hora
@@ -74,7 +74,7 @@ gps_colunas_hora <- gps_colunas %>%
 # 2) Comparar com a frota que era pra estar rodando (left_join) (+ gráfico) -------------------
 
 # 2.1) Abrir dados com a quantidade de veiculos por linha
-veiculos_linhas <- fread("rio_veiculos_linhas.csv")
+veiculos_linhas <- fread("data/rio_veiculos_linhas.csv")
 
 # transformar a coluna de linha para character
 veiculos_linhas <- veiculos_linhas %>%
@@ -82,7 +82,7 @@ veiculos_linhas <- veiculos_linhas %>%
   mutate(linha = as.character(linha))
 
 # 2.2) Abrir dados com a frota determinada
-frota_onibus <- fread("../../data-raw/curso_r_transportes/tabela_frota_rio.csv")
+frota_onibus <- fread("data-raw/tabela_frota_rio.csv")
 
 # 2.3) Filtrar a frota somente das linhas qque estamos analisando
 frota_onibus_filt <- frota_onibus %>%
@@ -118,6 +118,9 @@ ggplot() +
   labs(x = "Linha", y = "Veiculos", title = "Diferenca absoluta entre veiculos operados e previstos, por dia")
 
 
+
+# salvar o plot
+ggsave("figuras/plot2.png")
 
 
 

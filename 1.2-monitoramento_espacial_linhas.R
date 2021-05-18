@@ -18,7 +18,7 @@ library(readr) # abrir e salvar dados em rds
 # 1) Abrir arquivos -----------------------------
 
 # 1.1) Abrir arquivo de GPS
-gps <- fread("gps_rio_amostra.csv")
+gps <- fread("data/gps_rio_amostra.csv")
 # selecionar coluna de interesse
 gps <- gps %>% select(datahora, ordem, linha, lon = longitude, lat = latitude)
 

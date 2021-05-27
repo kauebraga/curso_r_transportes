@@ -1,5 +1,7 @@
 
 # install git
+# https://git-scm.com/download/win
+
 
 # 1) instalar pacotes ----------------------------------------------------------------------------
 

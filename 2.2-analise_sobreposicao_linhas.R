@@ -1,5 +1,6 @@
 # Esse script faz uma analise de sobreposicao de linhas, identificando linha por linhas quais sao
 # suas possiveis sobreposicoes com outras linhas
+
 # Conteudo:
 # 1) Abrir arquivo com as linhas
 # 2) Criar buffer em torno das linhas para realizar a intersecao espacial

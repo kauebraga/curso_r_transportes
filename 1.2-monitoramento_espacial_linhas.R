@@ -1,14 +1,27 @@
+# Esse script faz um monitoramento espacial da frota de GPS, onde eh possivel identificar interativamente
+# onde estao os pontos de GPS de determinada linha e em seguida comparar com o shape da linha,
+# identificando visualmente possiveis distorcoes entre a linha identificada no GPS e a linha que os veiculos
+# estao realmente rodando
+
+# Conteudo:
+# 1) Abrir arquivos de GPS e linhas da etapa anterior
+# 2) Filtrar linha teste para visualizacao
+# 3) Transformar os dados de GPS para formato espacial
+# 4) Criar buffer em torno da linha para facilitar visualizacao
+# 5) Visualizar
+# 6) Salvar bases de dados
+
+
+
+
+# 0) Carregar pacotes -------------------------------------------------------------------------
+
 library(dplyr) # manipulacao de dados
 library(data.table) # abrir e salvar dados (por enquanto)
 library(ggplot2) # graficos e mapas
 library(mapview) # visualizacao de dados espaciais
 library(sf) # operacoes com dados espaciais
 library(readr) # abrir e salvar dados em rds
-
-
-
-# Verificação de itinerários praticados por linha via GPS a partir de shp do que es --------
-# Mapa com sobreposição dos pontos de GPS da linha com o shape da linha
 
 
 
@@ -114,9 +127,5 @@ write_rds(gps, "data/gps_rio_amostra_linha.rds")
 # salvar arquivo de linhas filtrado
 write_rds(linhas_shape_buffer, "data/linhas_rio_amostra.rds")
 
-
-
-# 2) Embarque no BRT por estação e vans por hora (+ mapas e gráficos) -------------------------
-# Mapa com as estações com mais embarque (left_join)
 
 

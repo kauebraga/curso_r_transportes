@@ -1,3 +1,17 @@
+# Esse script primeiramente faz uma limpeza dos dados de GPS, excluindo altas concentracoes indevidas
+# Por fim, propoe e aplica um metodo que pega pontos de GPS que estao fora da linha identificada na base
+# e identifica possiveis linhas corretas desses pontos
+
+# Conteudo:
+# 1) Abrir arquivos de GPS e linhas da etapa anterior
+# 2) Juntar shapes de ida e volta da linha
+# 3) Verificar quais pontos de GPS estão dentro/fora dessa linha
+# 4) Fazer limpeza nos dados de GPS
+# 5) Verificar se esses pontos podem fazer parte de outra(s) linha(s)
+
+
+
+
 
 # 0) Carregar pacotes -------------------------------------------------------------------------
 
@@ -6,25 +20,11 @@ library(data.table) # abrir e salvar dados (por enquanto)
 library(ggplot2) # graficos e mapas
 library(mapview) # visualizacao de dados espaciais
 library(sf) # operacoes com dados espaciais
-library(readr)
+library(readr) # abrir e salvar dados
 options(scipen=999)
 
-# Abrir dados de GPS do BRT
-# Selecionar uma linha
-# Trazer o shape dessa linha
-# Mapear com a linha e os pontos de GPS com mapview::mapview
-# Verificar quais pontos de GPS estão dentro/fora dessa linha como sf::st_join
-# Calcular o tempo e a km que a linha fica fora de linha (garagem)
 
-
-# identificar linha amostral
-# linha_amostra <- 864
-# linha_amostra <- 350
-# linha_amostra <- 638
-# linha_amostra <- 2336
-# linha_amostra <- 309 # problematica
-
-# 1) Abrir arquivos de GPS e linhas da etapa anterior -------------------------------
+# 1) Abrir arquivos de GPS e linhas da etapa anteriorA -------------------------------
 
 # 1.1) Abrir dados de GPS
 gps <- read_rds("data/gps_rio_amostra_linha.rds")
@@ -90,7 +90,7 @@ mapview(gps_join_linha_fora) + mapview(linhas_shape_buffer)
 
 
 
-# 9) Fazer limpeza nos dados de GPS -----------------------------------------------------------
+# 4) Fazer limpeza nos dados de GPS -----------------------------------------------------------
 
 #' Foram observados diversos pontos mortos de GPS na linha, o que estava prejudicando as analises
 #' Situacoes como centanas de registros de GPS de uma linha sendo identificados em uma mesma localidade
@@ -101,7 +101,7 @@ mapview(gps_join_linha_fora) + mapview(linhas_shape_buffer)
 #' quando o veiculo esteja realmente em movimento
 
 
-# 9.1) Ordenar os dados de GPS por carro e linha
+# 4.1) Ordenar os dados de GPS por carro e linha
 gps_join_linha_fora1 <- arrange(gps_join_linha_fora, ordem, datahora)
 
 # # Extrair o momento preciso
@@ -111,10 +111,10 @@ gps_join_linha_fora1 <- arrange(gps_join_linha_fora, ordem, datahora)
 # Calcular a distancia entre um ponto e o seu ponto anterior
 # Isso vai ajudar a identificar quando um veiculo se manteve imovel/se moveu muito pouco
 
-# 9.2) Estabelecer funcao para calcular dist entre um ponto e seu anterior
+# 4.2) Estabelecer funcao para calcular dist entre um ponto e seu anterior
 get.dist <- function(lon, lat) geosphere::distHaversine(tail(cbind(lon,lat),-1), head(cbind(lon,lat),-1))
 
-# 9.3) Calcular essa distancia, agrupando por veiculo
+# 4.3) Calcular essa distancia, agrupando por veiculo
 gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
   group_by(ordem) %>%
   mutate(dist = c(0, get.dist(as.numeric(lon), as.numeric(lat))))
@@ -177,14 +177,14 @@ gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
 
 
 
-# 2) Verificar se esses pontos podem fazer parte de outra(s) linha(s) -------------------------
+# 5) Verificar se esses pontos podem fazer parte de outra(s) linha(s) -------------------------
 
 # para verificar se esses pontos que estao fora da linha  podem fazer parte de outras linhas,
 # vamos pegar o shape de todas as linhas do sistema e ver se esses pontos se encaixam de alguma forma
 # em alguma outra linha
 # isso sera feito atraves ca juncao espacial st_join
 
-# 2.1) Fazer novamente o buffer, mas em relacao a todas as outras linhas (isso pode demorar)
+# 5.1) Fazer novamente o buffer, mas em relacao a todas as outras linhas (isso pode demorar)
 linhas <- st_read("data-raw/2020-ago-30/2020-ago-30.shp")
 # selecionar a coluna 'ref' e renomea-la para 'linha'
 linhas <- linhas %>% select(linha = ref, name)
@@ -198,7 +198,7 @@ linhas_shape_buffer <- linhas_shape_buffer %>%
 
 
 
-# 2.2) Fazer entao a juncao espacial das duas bases
+# 5.2) Fazer entao a juncao espacial das duas bases
 
 # primeiro, selecionar somente as colunas necessarias
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, ordem, hora, lon, lat)

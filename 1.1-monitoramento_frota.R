@@ -31,7 +31,7 @@ library(ggplot2)
 
 
 # 1) Abrir arquivo de GPS ------------------------------------------
-gps <- fread("gps_rio_amostra.csv")
+gps <- fread("data-raw/gps_rio_amostra.csv")
 
 
 

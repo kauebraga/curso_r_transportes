@@ -30,8 +30,8 @@ library(readr) # abrir e salvar dados em rds
 
 # 1) Abrir arquivos -----------------------------
 
-# 1.1) Abrir arquivo de GPS
-gps <- fread("data/gps_rio_amostra.csv")
+# 1.1) Abrir arquivo de GPS # CORRIGIR
+gps <- fread("data-raw/gps_rio_amostra.csv")
 # selecionar coluna de interesse
 gps <- gps %>% select(datahora, ordem, linha, lon = longitude, lat = latitude)
 
@@ -59,13 +59,8 @@ linha_teste <- 309
 gps <- gps %>%
   # extrair a hora do registro de GPS
   mutate(hora = format(datahora, "%H")) %>%
-  # filtrar somente al inha 864
+  # filtrar somente a a linha teste
   filter(linha == linha_teste)
-
-# 2.2) Filtrar a linha desejada no shape
-linhas_shape_select <- linhas_shape_select %>%
-  filter(linha == linha_teste)
-
 
 
 
@@ -85,10 +80,15 @@ gps <- st_as_sf(gps, coords = c("lon", "lat"), crs = 4326, remove = FALSE)
 
 
 # 4) Criar buffer em torno da linha para facilitar visualizacao -----------------------
-# o argumento em distancia esta em graus, onde o 1 grau representa 111139 metros
-linhas_shape_buffer <- st_buffer(linhas_shape_select, dist = 0.001)
 
+# transform o shape das linhas para projecao UTM - SIRGAS 2000 / UTM zone 23S
+linhas_shape_buffer <- st_transform(linhas_shape_select, crs = 31983)
 
+# fazer o buffer, com o argumento distancia em metros (500 metros)
+linhas_shape_buffer <- st_buffer(linhas_shape_buffer, dist = 500)
+
+# transformar o shape para projecao longitude - latitude
+linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 
 
 # 5) Visualizar -----------------------------------------------------

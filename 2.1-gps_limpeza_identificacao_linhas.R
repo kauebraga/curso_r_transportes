@@ -215,15 +215,21 @@ linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, linha_gps, ordem, hora, lon, lat)
 
 # calcular a quantidade de pontos de gps
+# isso vai basicamente criar uma coluna com a quantidade de pontos de GPS - para servir para comparacao mais a frente
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
   add_count(linha_gps, name = "pontos_totais")
 
 # juncao espacial: a base com os pontos fora da linha fica no lado esquerdo, enquanto a base com as linhas do lado direito
+# essa operacao vai dizer em qual(is) linha(s) estao cada ponto de GPS
+# como varias linhas podem tem intersecoes, um mesmo ponto de GPS pode se multiplicar em varias observaoes - uma por linha
 gps_join_linhas <- st_join(gps_join_linha_fora1_new, linhas_shape_buffer)
 
 
-# calcular a proporcao dos pontos que esta dentro de todas as outras linhas
-# do sistema
+# calcular a proporcao dos pontos que esta dentro de todas as outras linhas do sistema
+# essa porcentagem pode ser liga como "a porcentagem de pontos que nao sao da linha registrada no GPS que estao dentro dessa linha"
+# dessa forma, por ex, se um linha tiver uma porcentagem de 80%, significa que 80% dos pontos com informacao errada do GPS
+# estao dentro dessa linha
+
 a <- gps_join_linhas %>%
   st_set_geometry(NULL) %>%
   group_by(linha, operator) %>%

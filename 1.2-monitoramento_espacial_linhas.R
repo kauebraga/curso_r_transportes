@@ -35,6 +35,8 @@ gps <- fread("data-raw/gps_rio_amostra.csv")
 # selecionar coluna de interesse
 gps <- gps %>% select(datahora, ordem, linha, lon = longitude, lat = latitude)
 
+head(gps)
+
 # 1.2) Abrir arquivo com as linhas
 linhas_shape <- st_read("data-raw/2020-ago-30/2020-ago-30.shp")
 head(linhas_shape)
@@ -62,6 +64,13 @@ gps <- gps %>%
   # filtrar somente a a linha teste
   filter(linha == linha_teste)
 
+# 2.2) Filtrar a linha desejada no shape
+linhas_shape_select <- linhas_shape_select %>%
+  filter(linha == linha_teste)
+
+head(linhas_shape_select)
+
+
 
 
 # 3) Transformar os dados de GPS para formato espacial sf --------------------------------
@@ -73,10 +82,15 @@ gps <- gps %>%
   mutate(lon = sub(pattern = ",", replacement = ".", x = lon),
          lat = sub(pattern = ",", replacement = ".", x = lat))
 
+
+head(gps)
+
 # agora fazer a transformacao para sf
 gps <- st_as_sf(gps, coords = c("lon", "lat"), crs = 4326, remove = FALSE)
 
+head(linhas_shape_select)
 
+mapview(linhas_shape_select)
 
 
 # 4) Criar buffer em torno da linha para facilitar visualizacao -----------------------
@@ -91,14 +105,18 @@ linhas_shape_buffer <- st_buffer(linhas_shape_buffer, dist = 500)
 linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 
 
+mapview(linhas_shape_buffer)
+
+
+
 # 5) Visualizar -----------------------------------------------------
 
 # 5.1) Filtrar somente os registros de GPS de 06h e 07h para facilitar a visualizacao
 gps_pico <- gps %>%
   filter(hora %in% c("06", "07"))
 
-# visualizacao interativa
-mapview(gps_pico) + mapview(linhas_shape_buffer)
+nrow(gps_pico)
+
 
 # mapa estatico
 ggplot() +
@@ -112,6 +130,8 @@ ggplot() +
 
 
 
+# visualizacao interativa
+mapview(gps_pico) + mapview(linhas_shape_buffer)
 
 
 
@@ -126,6 +146,5 @@ write_rds(gps, "data/gps_rio_amostra_linha.rds")
 
 # salvar arquivo de linhas filtrado
 write_rds(linhas_shape_buffer, "data/linhas_rio_amostra.rds")
-
 
 

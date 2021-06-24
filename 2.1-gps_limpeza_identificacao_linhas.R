@@ -61,6 +61,9 @@ linhas_shape_buffer <- linhas_shape_buffer %>%
 gps <- gps %>% rename(linha_gps = linha)
 linhas_shape_buffer <- linhas_shape_buffer %>% rename(linha_shape = linha)
 
+# Ordenar os dados de GPS por carro e linha
+gps <- arrange(gps, ordem, datahora)
+
 # 3.2) Realizar a intersecao espacial
 gps_join_linha <- st_join(gps, linhas_shape_buffer)
 
@@ -187,60 +190,59 @@ gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
 # 5.1) Fazer novamente o buffer, mas em relacao a todas as outras linhas (isso pode demorar)
 linhas <- st_read("data-raw/2020-ago-30/2020-ago-30.shp")
 # selecionar a coluna 'ref' e renomea-la para 'linha'
-linhas <- linhas %>% select(linha = ref, name)
-# fazer entao o buffer
-linhas_shape_buffer <- st_buffer(linhas, dist = 0.001)
+linhas <- linhas %>% select(linha = ref, name, operator)
 
-# fazer novamenta a juncao da ida com a volta  (isso pode demorar)
-linhas_shape_buffer <- linhas_shape_buffer %>%
+# fazer novamente a juncao da ida com a volta  (isso pode demorar)
+linhas <- linhas %>%
   group_by(linha) %>%
-  summarise(do_union = TRUE)
+  summarise(operator = first(operator), 
+            do_union = TRUE)
+
+
+# fazer entao o buffer
+linhas_shape_buffer <- st_transform(linhas, crs = 31983)
+linhas_shape_buffer <- st_buffer(linhas_shape_buffer, dist = 100)
+linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 
 
 
 # 5.2) Fazer entao a juncao espacial das duas bases
 
 # primeiro, selecionar somente as colunas necessarias
-gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, ordem, hora, lon, lat)
+gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, linha_gps, ordem, hora, lon, lat)
 
 # calcular a quantidade de pontos de gps por veiculo
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
-  add_count(ordem, name = "pontos_por_veiculo")
+  add_count(linha_gps, name = "pontos_por_veiculo")
 
 # juncao espacial: a base com os pontos fora da linha fica no lado esquerdo, enquanto a base com as linhas do lado direito
 gps_join_linhas <- st_join(gps_join_linha_fora1_new, linhas_shape_buffer)
 
+
+# calcular a proporcao dos pontos que esta dentro de todas as outras linhas
+# do sistema
 a <- gps_join_linhas %>%
   st_set_geometry(NULL) %>%
-  group_by(linha, ordem) %>%
-  summarise(pontos_n = n(), pontos_por_veiculo =  first(pontos_por_veiculo)) %>%
+  group_by(linha, operator) %>%
+  summarise(pontos_n = n(), 
+            pontos_por_veiculo =  first(pontos_por_veiculo)) %>%
   mutate(perc_n = pontos_n/pontos_por_veiculo)
 
-# como interpretar esse resultado????
-b <- a %>%
-  group_by(ordem) %>%
-  filter(perc_n > 0.8) %>%
-  arrange(ordem)
+# selecionar somente as linhas que sejam do mesmo operador
+# primeiro, extrair a lihna do GPS
+linha_gps <- gps$linha_gps
+# a partir dessa linha, extrair o operador
+operador <- linhas_shape_buffer %>% filter(linha %in% linha_gps)
+
+# filtrar entao somente o operador
+a_operador <- a %>%
+  filter(operator == operador$operator)
+
+
 
 # verificar
+mapview(filter(linhas_shape_buffer, linha %in% c(315))) +
+  mapview(gps_join_linha_fora1_new)
 
-mapview(linhas_shape_buffer %>% filter(linha %in% c(330, 442, 443, 444))) +
-  # mapview(gps_linha_sf %>% filter(ordem == "C41211") %>% View())
-  mapview(gps_join_linha_fora1_new %>% filter(ordem == "C41116"))
-# mapview(gps_linha_sf %>% filter(ordem == "C41392") %>% slice(1:500))
-
-mapview(linhas_shape_buffer %>% filter(linha %in% c(181))) +
-  # mapview(gps_linha_sf %>% filter(ordem == "C41211") %>% View())
-  mapview(gps_join_linha_fora1_new %>% filter(ordem == "C41381"))
-# mapview(gps_linha_sf %>% filter(ordem == "C41392") %>% slice(1:500))
-
-mapview(linhas_shape_buffer %>% filter(linha %in% c(315, 361))) +
-  # mapview(gps_linha_sf %>% filter(ordem == "C41211") %>% View())
-  mapview(gps_join_linha_fora1_new %>% filter(ordem == "C41089"))
-# mapview(gps_linha_sf %>% filter(ordem == "C41392") %>% slice(1:500))
-
-
-
-aaai <- gps_join_linhas %>% filter(ordem == "C41381")
-
-count(aaai, linha, sort = TRUE)        
+mapview(filter(linhas_shape_buffer, linha %in% c(361))) +
+  mapview(gps_join_linha_fora1_new)

@@ -29,6 +29,9 @@ options(scipen=999)
 # 1.1) Abrir dados de GPS
 gps <- read_rds("data/gps_rio_amostra_linha.rds")
 
+# selecionar somente horarios do pico manha
+gps <- gps %>% filter(hora %in% c("05", "06", "07", "08"))
+
 # 1.2) Abrir shape da linha
 linhas_shape_buffer <- read_rds("data/linhas_rio_amostra.rds")
 
@@ -211,9 +214,9 @@ linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 # primeiro, selecionar somente as colunas necessarias
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, linha_gps, ordem, hora, lon, lat)
 
-# calcular a quantidade de pontos de gps por veiculo
+# calcular a quantidade de pontos de gps
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
-  add_count(linha_gps, name = "pontos_por_veiculo")
+  add_count(linha_gps, name = "pontos_totais")
 
 # juncao espacial: a base com os pontos fora da linha fica no lado esquerdo, enquanto a base com as linhas do lado direito
 gps_join_linhas <- st_join(gps_join_linha_fora1_new, linhas_shape_buffer)
@@ -225,8 +228,8 @@ a <- gps_join_linhas %>%
   st_set_geometry(NULL) %>%
   group_by(linha, operator) %>%
   summarise(pontos_n = n(), 
-            pontos_por_veiculo =  first(pontos_por_veiculo)) %>%
-  mutate(perc_n = pontos_n/pontos_por_veiculo)
+            pontos_totais =  first(pontos_totais)) %>%
+  mutate(perc_n = pontos_n/pontos_totais)
 
 # selecionar somente as linhas que sejam do mesmo operador
 # primeiro, extrair a lihna do GPS

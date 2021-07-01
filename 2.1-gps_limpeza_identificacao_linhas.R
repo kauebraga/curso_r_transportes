@@ -32,10 +32,12 @@ gps <- read_rds("data/gps_rio_amostra_linha.rds")
 # selecionar somente horarios do pico manha
 gps <- gps %>% filter(hora %in% c("05", "06", "07", "08"))
 
+head(gps)
+
 # 1.2) Abrir shape da linha
 linhas_shape_buffer <- read_rds("data/linhas_rio_amostra.rds")
 
-
+mapview(gps) + mapview(linhas_shape_buffer)
 
 # 2) Juntar shapes de ida e volta da linha ----------------------------------------------------
 # como temos o shape da ida e da volta, eh interessante junta-los em uma mesma observacao
@@ -43,10 +45,11 @@ linhas_shape_buffer <- read_rds("data/linhas_rio_amostra.rds")
 # que vai agrupar espacialmente as observacoes
 linhas_shape_buffer <- linhas_shape_buffer %>%
   group_by(linha) %>%
-  summarise(do_union = TRUE)
+  summarise(n = n(),
+            do_union = TRUE)
 
 
-
+head(linhas_shape_buffer)
 
 
 
@@ -125,7 +128,7 @@ gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
   group_by(ordem) %>%
   mutate(dist = c(0, get.dist(as.numeric(lon), as.numeric(lat))))
 
-#' Aqui, vamos estabelecer a velocidade de 50 metros como uma distancia limite entre um ponto e seu anterior
+#' Aqui, vamos estabelecer a distancia de 50 metros como uma distancia limite entre um ponto e seu anterior
 #' para identificar esses pontos como uma 'aglomeracao' onde o veiculo estava parado/pouco se mexendo
 #' se a distancia for maior que 50m, sera atribuido um conjunto de letras que sao diferentes
 #' se a distancia for menor que 50m, sera atribuido o numeral 1
@@ -155,7 +158,7 @@ gps_join_linha_fora1 <- gps_join_linha_fora1 %>%
 # Fazer entao o filtro para concentracoes que tenham mais de 15 pontos - essas vao ser reduzidas
 gps_join_linha_fora2 <- gps_join_linha_fora1 %>%
   # fazer o filtro de 15 pontos
-  filter(n >= 15)  %>%
+  filter(nn >= 15)  %>%
   # agruparar por veiculo e sequencia
   group_by(ordem, seq) %>%
   # a funcao 'slice' serve para extrair as observacoes por posicao - nesse caso, vamos tirar a 
@@ -167,7 +170,7 @@ gps_join_linha_fora2 <- gps_join_linha_fora1 %>%
 # Para isso, precisamos primeiro manter somente os nao-concentrados da base original
 gps_join_linha_fora1_new <- gps_join_linha_fora1 %>%
   # filtrar somente os nao-concetrados, ou seja, as concentracoes com menos de 15 pontos
-  filter(n < 15) %>%
+  filter(nn < 15) %>%
   ungroup()
 
 # Em seguida, juntar os nao-concentrados com os concentrados corridigos 
@@ -217,7 +220,7 @@ gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>% select(datahora, linha_
 # calcular a quantidade de pontos de gps
 # isso vai basicamente criar uma coluna com a quantidade de pontos de GPS - para servir para comparacao mais a frente
 gps_join_linha_fora1_new <- gps_join_linha_fora1_new %>%
-  add_count(linha_gps, name = "pontos_totais")
+  add_count(linha_gps, ordem, name = "pontos_totais")
 
 # juncao espacial: a base com os pontos fora da linha fica no lado esquerdo, enquanto a base com as linhas do lado direito
 # essa operacao vai dizer em qual(is) linha(s) estao cada ponto de GPS
@@ -232,7 +235,7 @@ gps_join_linhas <- st_join(gps_join_linha_fora1_new, linhas_shape_buffer)
 
 a <- gps_join_linhas %>%
   st_set_geometry(NULL) %>%
-  group_by(linha, operator) %>%
+  group_by(linha, ordem, operator) %>%
   summarise(pontos_n = n(), 
             pontos_totais =  first(pontos_totais)) %>%
   mutate(perc_n = pontos_n/pontos_totais)

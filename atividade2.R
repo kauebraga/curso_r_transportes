@@ -1,13 +1,13 @@
-
-# Identificar de qual garagem sai uma linha e qual é a distância entre a  
+# Identificar de qual garagem sai uma linha e qual é a distância entre as+  
 # garagens e o início de operação da linha
+# O arquivo das garagens esta em 'data-raw/Garagens-SPPO_Final.rar' (eh necessario descompactar o arquivo primeiro)
 
 
-library(dplyr)
-library(sf)
-library(mapview)
-library(readr)
-library(data.table)
+# carregar pacotes ----------------------------------------------------------------------------
+
+
+
+
 
 # abrir dados ---------------------------------------------------------------------------------
 # sugestao de linha para amostra: 415

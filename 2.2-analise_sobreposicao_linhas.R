@@ -61,8 +61,7 @@ linhas_shape_buffer <- st_buffer(linhas_shape_buffer, dist = 100)
 linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 
 
-
-
+mapview(linhas_shape_buffer)
 
 
 # 3) Realizar a intersecao espacial para identificar sobreposicoes de linhas ------------------
@@ -77,12 +76,12 @@ linha_teste <- 315
 
 # 3.2) Filtrar a linha teste na camada 1 (o filtro nao sera necessario na camada 2)
 linhas_shape_select_filter <- linhas_shape_select %>%
-  filter(linha %in% linha_teste) %>%
+  filter(linha == linha_teste) %>%
   # calcular o comprimento da linha para futura comparacao
   mutate(linha_comprimento = st_length(.))
 
 # verificar atraves da visualizacao (melhor nao rodar caso computador seja lento)
-mapview(linhas_shape_buffer_filter) + linhas_shape_select_filter
+mapview(linhas_shape_buffer) + linhas_shape_select_filter
 
 
 # 3.3) Realizar a operacao de sobreposicao com a funcao `st_intersection` 
@@ -93,10 +92,13 @@ mapview(linhas_shape_buffer_filter) + linhas_shape_select_filter
 
 # aplicar funcao
 linha_sobreposicao <- st_intersection(linhas_shape_select_filter, linhas_shape_buffer) %>%
+  
   # calcular entao o tamanho dessa intersecao
   mutate(intersecao_comprimento = st_length(.)) %>%
+  
   # calcular a porcentagem da linha que faz intersecao com a outra linha
   mutate(intersecao_perc = as.numeric(intersecao_comprimento) / as.numeric(linha_comprimento)) %>%
+  
   # ordenar os dados pela intersecao_perc 
   # (colocar a coluna entre desc() significa que a ordenacao sera do maior para o menor)
   arrange(desc(intersecao_perc))
@@ -105,4 +107,16 @@ linha_sobreposicao <- st_intersection(linhas_shape_select_filter, linhas_shape_b
 head(linha_sobreposicao)
 
 # visualizar resultado
-mapview(a) + linhas_shape_buffer_filter
+linha_sobreposicao_filter <- linha_sobreposicao %>%
+  slice(2)
+
+linha_viz <- linhas_shape_select %>%
+  filter(linha %in% c(315, 303))
+
+linha_303 <- linhas_shape_select %>%
+  filter(linha == 303)
+
+# visualizar linhas 
+mapview(linha_viz, zcol = "linha", alpha = 0.3)
+
+mapview(linhas_shape_select_filter) + mapview(linha_303)

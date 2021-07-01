@@ -38,14 +38,6 @@ linhas_shape_select <- linhas_shape %>%
 
 
 
-
-
-# 2) Criar buffer em torno das linhas para realizar a intersecao espacial ---------------
-
-# o argumento em distancia esta em graus, onde o 1 grau representa 111139 metros
-linhas_shape_buffer <- st_buffer(linhas_shape_select, dist = 0.001)
-
-
 #' como temos o shape da ida e da volta, eh interessante junta-los em uma mesma observacao
 #' isso eh feito atraves da combinacao 'group_by' e 'summarise', so que agora eh uma operacao espacial
 #' que vai agrupar espacialmente as observacoes
@@ -53,14 +45,20 @@ linhas_shape_buffer <- st_buffer(linhas_shape_select, dist = 0.001)
 # isso vai ser feito tanto para as linhas como para as linhas bufferizadas
 linhas_shape_select <- linhas_shape_select %>%
   group_by(linha) %>%
-  summarise(do_union = TRUE)
+  summarise(do_union = TRUE, n = n())
 
-linhas_shape_buffer <- linhas_shape_buffer %>%
-  group_by(linha) %>%
-  summarise(do_union = TRUE) %>%
-  # renomear coluna da linha para ficar mais claro
-  rename(linha_intersecao = linha)
+mapview(linhas_shape_select)
 
+# 2) Criar buffer em torno das linhas para realizar a intersecao espacial ---------------
+# 
+# linhas_shape_buffer <- st_buffer(st_transform(linhas_shape_select, 31983), dist = 200) %>%
+#   st_transform(4326)
+
+
+# fazer entao o buffer
+linhas_shape_buffer <- st_transform(linhas_shape_select, crs = 31983)
+linhas_shape_buffer <- st_buffer(linhas_shape_buffer, dist = 100)
+linhas_shape_buffer <- st_transform(linhas_shape_buffer, crs = 4326)
 
 
 

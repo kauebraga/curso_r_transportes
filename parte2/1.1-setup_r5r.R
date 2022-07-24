@@ -9,34 +9,33 @@ library(r5r)
 library(gtfstools)
 library(mapview)
 
-# 1) Download da malha viaria do OSM ----------------------------
+
+
+# 1) Criar pastas com os arquivos ----------------------------
+# criar 2 pastas, uma representando cada gtfs
+dir.create("r5/rio_atual")
+dir.create("r5/rio_filtrado")
+
+
+# 2) mover arquivos para as pastas -------------------------------------------
+
+# As duas pasta vao ter os mesmos arquivos de malha viara e topografia
+file.copy(from = "data-raw/rio_2020.osm.pbf"   , to = "r5/rio_atual")
+file.copy(from = "data-raw/topografia3_rio.tif", to = "r5/rio_atual")
+
+file.copy(from = "data-raw/rio_2020.osm.pbf"   , to = "r5/rio_filtrado")
+file.copy(from = "data-raw/topografia3_rio.tif", to = "r5/rio_filtrado")
+
+# copiar arquivos de gtfs
+file.copy(from = "data/gtfs/gtfs_rio_atual.zip",    to = "r5/rio_atual")
+file.copy(from = "data/gtfs/gtfs_rio_filtrado.zip", to = "r5/rio_filtrado")
 
 
 
-# 2) Verificacao do arquivo de GTFS -----------------------------------------------------------
 
-# abrir gtfs
-gtfs1 <- gtfstools::read_gtfs("data-raw/gtfs_brt_08-10-2021.zip")
-gtfs2 <- gtfstools::read_gtfs("data-raw/licitacao_brt_v3.zip")
-
-
-# verificar rotas
-gtfs1_rotas <- gtfstools::get_trip_geometry(gtfs1, file = "shapes")
-mapview(gtfs1_rotas)
-
-gtfs2_rotas <- gtfstools::get_trip_geometry(gtfs2, file = "shapes")
-mapview(gtfs2_rotas)
-
-# verificar viagens
-gtfs1_velocidades <- gtfstools::get_trip_speed(gtfs1)
-summary(gtfs1_velocidades$speed)
-
-gtfs2_velocidades <- gtfstools::get_trip_speed(gtfs2)
-summary(gtfs2_velocidades$speed)
-
-# OK!
 
 # 3) Geracao dos pontos origem-destino --------------------------------------------------------
+# vamo usar a malha hexagonoal utilizada no projeto acesso a oportunidades
 
 # fazer download do aopdata
 pontos_rio <- aopdata::read_grid("rio")
@@ -59,14 +58,15 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
   select(id = id_hex, lon, lat)
 
 # salvar no formato do r5r
-data.table::fwrite(pontos_rio_centroide, "r5r/points/points_rio_todo.csv")
+write.csv(pontos_rio_centroide, "r5/points_rio_todo.csv", 
+          row.names = FALSE)
 
 
 
 # 4) Criar network -------------------------------------------------------------------------------
 
 # definir o caminho da pasta
-path1 <- "r5r/network/rio_atual/"
-path2 <- "r5r/network/rio_2023/"
+path1 <- "r5/rio_atual"
+path2 <- "r5/rio_filtrado"
 r5r::setup_r5(data_path = path1, use_elevation = TRUE, overwrite = TRUE)
 r5r::setup_r5(data_path = path2, use_elevation = TRUE, overwrite = TRUE)

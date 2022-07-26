@@ -2,12 +2,13 @@ library(dplyr)
 library(gtfstools)
 library(mapview)
 
-# Esse script vai criar um novo GTFS sem certas linhas etc
+# Esse script vai criar um novo GTFS sem algunas linhas definidas
+# antes, sera feita uma exploracao basica no arquivo de GTFS
 
 
 # 1) abrir e juntar gtfsgtfs --------------------------------------------------------------
 
-gtfs1 <- read_gtfs("data-raw/gtfs/gtfs_pcrj_2022-07-18_filt_ed.zip")
+gtfs1 <- read_gtfs("data-raw/gtfs/gtfs_pcrj_2022-07-26_filt_ed.zip")
 gtfs2 <- read_gtfs("data-raw/gtfs/brt_2022-07.zip")
 
 # juntar gtfs
@@ -63,12 +64,18 @@ mapview(linhas_sf, zcol = "route_type")
 gtfs_atual <- read_gtfs("data/gtfs/gtfs_rio_atual.zip")
 
 # definir quais linhas vao ser removidas
-linhas_removidas <- c("O0003EAA0A")
+linhas_removidas <- c("010", "014", "104", "201", "311",     "349", "388",     "435", "448", 
+                      "603", "626", "651", "652", "SVA 665", "669", "SVB 685", "741",
+                      "743", "778", "822", "831", "845",     "849", "851",     "865", "870",
+                      "871", "892", "893", "922", "925",     "951", "LECD 39", "LECD 40", 
+                      "LECD 42", "LECD 43", "LECD 44", "LECD 49", "LECD 50")
 
 # visualizar as linhas que sao removidas
 # primeiro, extrair essas linhas do arquivo de rotas
 linhas_filtro <- gtfs_atual$routes %>%
-  filter(route_id %in% linhas_removidas)
+  # as linhas que foram informadas representam o nome da linha, que esta na coluna
+  # route_short_name
+  filter(route_short_name %in% linhas_removidas)
 
 # identificar quais sao os shapes relacionados a essa linha
 # primeiro, extrair a relacao route_Id - shape_id
@@ -97,5 +104,5 @@ mapview(linhas_sf_filtro)
 gtfs_filtrado <- gtfstools::filter_by_route_id(gtfs_atual, linhas_removidas, 
                                                keep = FALSE)
 
-# salvar
+# 3) salvar -------------------------
 write_gtfs(gtfs_filtrado, "data/gtfs/gtfs_rio_filtrado.zip")

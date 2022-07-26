@@ -1,11 +1,8 @@
 # Esse script faz o setup das pastas e arquivos para a utilizacao do r5r para calculo de matriz
 # de tempo de viagem
-options(java.parameters = '-Xmx10G')
-library(osmextract)
 library(sf)
 library(aopdata) # pontos de origem-destino
 library(dplyr)
-library(r5r)
 library(gtfstools)
 library(mapview)
 

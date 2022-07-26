@@ -10,8 +10,8 @@ library(mapview)
 
 # 1) Criar pastas com os arquivos ----------------------------
 # criar 2 pastas, uma representando cada gtfs
-dir.create("r5/rio_atual")
-dir.create("r5/rio_filtrado")
+dir.create("r5/rio_atual", recursive = TRUE)
+dir.create("r5/rio_filtrado", recursive = TRUE)
 
 
 # 2) mover arquivos para as pastas -------------------------------------------

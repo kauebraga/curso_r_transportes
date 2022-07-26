@@ -11,10 +11,15 @@ library(mapview)
 gtfs1 <- read_gtfs("data-raw/gtfs/gtfs_pcrj_2022-07-26_filt_ed.zip")
 gtfs2 <- read_gtfs("data-raw/gtfs/brt_2022-07.zip")
 
+# o gtfs1 esta
+
 # juntar gtfs
 gtfs_atual <- merge_gtfs(gtfs1, gtfs2,
                          files = c("agency", "calendar", "calendar_dates", "frequencies", "routes", "shapes",
-                                   "stop_times", "stops", "trips"))
+                                   "stop_times", "stops", "trips"),
+                         prefix = c("bus", "brt"))
+# criar diretorio
+dir.create("data/gtfs")
 
 # salvar novo gtfs atual
 write_gtfs(gtfs_atual, "data/gtfs/gtfs_rio_atual.zip")
@@ -30,9 +35,11 @@ gtfs_atual <- read_gtfs("data/gtfs/gtfs_rio_atual.zip")
 linhas <- gtfs_atual$routes
 
 # ver essas linhas espacialmente
-# cada linha eh composta por 1 ou mais shapes, que representam o tracado
+# cada linha eh composta por 1 ou mais shapes, que representam o tracado.
 # geralmente 1 linha contem 2 shapes - 1 de ida / 1 de volta
+# converter os shapes p/ formato espacial
 linhas_sf <- convert_shapes_to_sf(gtfs_atual)
+# visualizar
 mapview(linhas_sf)
 
 # talvez eu queria visualizar o sistema por tipo de rota (onibus, metro etc)
@@ -70,7 +77,7 @@ linhas_removidas <- c("010", "014", "104", "201", "311",     "349", "388",     "
                       "871", "892", "893", "922", "925",     "951", "LECD 39", "LECD 40", 
                       "LECD 42", "LECD 43", "LECD 44", "LECD 49", "LECD 50")
 
-# visualizar as linhas que sao removidas
+# visualizar as linhas que sao removidas ----------------
 # primeiro, extrair essas linhas do arquivo de rotas
 linhas_filtro <- gtfs_atual$routes %>%
   # as linhas que foram informadas representam o nome da linha, que esta na coluna
@@ -90,7 +97,7 @@ shapes <- gtfs_atual$shapes %>%
 
 # fazer entao o filtro somente com as linhas que eu quero
 shapes_filtro <- shapes %>% 
-  filter(route_id %in% linhas_removidas)
+  filter(route_id %in% linhas_filtro$route_id)
 
 # filtrar entao somente os shapes que queremos visualizar
 linhas_sf_filtro <- linhas_sf %>%
@@ -101,7 +108,7 @@ mapview(linhas_sf_filtro)
 
 # confirmado que essa sao as linhas que desejo, remover do gtfs p/ criar o novo
 # remover linhas
-gtfs_filtrado <- gtfstools::filter_by_route_id(gtfs_atual, linhas_removidas, 
+gtfs_filtrado <- gtfstools::filter_by_route_id(gtfs_atual, linhas_filtro$route_id, 
                                                keep = FALSE)
 
 # 3) salvar -------------------------

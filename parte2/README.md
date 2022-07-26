@@ -10,7 +10,7 @@ Esses cenários antes e depois, no caso de transporte público, são incorporado
 
 As etapas do código então são:
 
-Parte 1: fazer as mudanças necessárias no GTFS pra criar o cenário de intervenção
-Parte 2: calcular as matrizes de tempo de viagem antes e depois
-Parte 3: calcular a acessibilidade antes e depois
-Parte 4: comparar a acessibilidade
+- **Parte 1**: fazer as mudanças necessárias no GTFS pra criar o cenário de intervenção
+- **Parte 2**: calcular as matrizes de tempo de viagem antes e depois
+- **Parte 3**: calcular a acessibilidade antes e depois
+- **Parte 4**: comparar a acessibilidade

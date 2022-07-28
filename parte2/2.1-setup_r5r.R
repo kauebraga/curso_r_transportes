@@ -59,6 +59,19 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 pontos_rio_centroide <- pontos_rio_centroide %>%
   select(id = id_hex, lon, lat)
 
+
+# pegar pop
+rio_pop <- aopdata::read_landuse(city = "rio")
+# selecionar variaveis (pop eh a P001)
+rio_pop <- select(rio_pop, id_hex, P001) %>%
+  # selecionar somente as com pop
+  filter(P001 > 0)
+# filtrar essas nos pontos
+pontos_rio_centroide <- pontos_rio_centroide %>%
+  filter(id %in% rio_pop$id_hex)
+
+
+# ou
 # pegar 2000 pontos aleatorios
 pontos_rio_centroide <- sample_n(pontos_rio_centroide, 2000)
 

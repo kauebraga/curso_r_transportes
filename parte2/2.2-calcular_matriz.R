@@ -2,7 +2,7 @@
 # arquivo de GTFS
 
 # carregar bibliotecas
-options(java.parameters = '-Xmx6G') # vai depender da memoria da maquina de cada um
+options(java.parameters = '-Xmx12G') # vai depender da memoria da maquina de cada um
 library(dplyr)
 library(r5r)
 library(data.table)
@@ -19,18 +19,35 @@ pontos_rio <- readr::read_csv("r5/points_rio_todo.csv")
 gtfs <- gtfstools::read_gtfs("r5/rio_atual/gtfs_rio_atual.zip")
 calendar <- gtfs$calendar
 View(calendar)
+
+# tem que ser: 
+# - um dia dentro do intervalo start_date e end_date 
+# - um dia de semana
 date <- "18-07-2022"
+# selecionar tambem a hora de partida
 time <- "06:00:00"
 
-# setar argumentos
+# setar argumentos ----------
+# definir os modos de transporte do roteamento
 mode <- c("WALK", "TRANSIT")
+# definir o tempo maximo de caminhada da origem ate a parada de onibus / da parada de onibus pro destino
 max_walk_time <- 30  # minutes
+# definir o tempo maximo da viagem
 max_trip_duration <- 180 # minutes
+# compor o dia e a hora da viagem
 departure <- paste0(date, " ", time)
 departure_datetime <- as.POSIXct(departure, format = "%d-%m-%Y %H:%M:%S")
 
 # outros parametros
+# esse parametro vai definir a janela de calculo da matriz, e eh definido em minutos
+# por exemplo: como definimos a hora de partida como 06h, um time_window de 120
+# calcularia uma matriz por minuto por 120 minutos - de 6h as 8h
+# isso eh importante pq o tempo de viagem pode variar bastante a cada minuto q vc parte de "casa",
+# entao calcular uma mtariz por minuto suaviza isso
+
+# para fins de teste, vamos deixar como um (bem masi rapido)
 time_window <- 1
+# esse argumento eh importante para gtfst tipo frequencies, e deixa o processametno bem amis rapido
 draws_per_minute <- 1
 
 
@@ -44,6 +61,7 @@ r5r_core <- setup_r5(data_path = "r5/rio_atual", verbose = FALSE)
 
 
 # 3.1) calculate a travel time matrix
+a <- Sys.time()
 ttm1 <- travel_time_matrix(r5r_core = r5r_core,
                            origins = pontos_rio,
                            destinations = pontos_rio,
@@ -53,7 +71,8 @@ ttm1 <- travel_time_matrix(r5r_core = r5r_core,
                            max_trip_duration = max_trip_duration,
                            time_window = 1,
                            draws_per_minute = 1)
-
+a1 <- Sys.time()
+a1 - a
 # checar a quantidade de pontos que o r5r retornou
 unique(ttm1$from_id) %>% length()
 
@@ -75,7 +94,7 @@ ttm2 <- travel_time_matrix(r5r_core = r5r_core,
 
 # juntar matrizes
 ttm <- full_join(ttm1, ttm2,
-                 by = c("fromId", "toId"),
+                 by = c("from_id", "to_id"),
                  suffix = c("_atual", "_filtrado"))
 
 

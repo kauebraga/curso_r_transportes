@@ -19,7 +19,7 @@ gtfs_atual <- merge_gtfs(gtfs1, gtfs2,
                                    "stop_times", "stops", "trips"),
                          prefix = c("bus", "brt"))
 # criar diretorio
-dir.create("data/gtfs")
+dir.create("data/gtfs", recursive = TRUE)
 
 # salvar novo gtfs atual
 write_gtfs(gtfs_atual, "data/gtfs/gtfs_rio_atual.zip")
@@ -108,7 +108,8 @@ mapview(linhas_sf_filtro)
 
 # confirmado que essa sao as linhas que desejo, remover do gtfs p/ criar o novo
 # remover linhas
-gtfs_filtrado <- gtfstools::filter_by_route_id(gtfs_atual, linhas_filtro$route_id, 
+gtfs_filtrado <- gtfstools::filter_by_route_id(gtfs_atual, 
+                                               route_id = linhas_filtro$route_id, 
                                                keep = FALSE)
 
 # 3) salvar -------------------------

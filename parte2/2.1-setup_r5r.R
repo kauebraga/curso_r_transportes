@@ -53,7 +53,10 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
   # deletar a geometria do sf: nao vamos precisar dela!
   st_set_geometry(NULL)
 
-# ADD FILTRO PARA POPULACAO
+
+
+
+# ADD FILTRO PARA POPULACAO -------------------
 
 # selecionar e renomear colunas para o r5
 pontos_rio_centroide <- pontos_rio_centroide %>%
@@ -72,7 +75,7 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 
 
 # ou
-# pegar 2000 pontos aleatorios
+# pegar 2000 pontos aleatorios --------------------
 pontos_rio_centroide <- sample_n(pontos_rio_centroide, 2000)
 
 

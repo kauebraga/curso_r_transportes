@@ -79,7 +79,8 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 pontos_rio_centroide <- sample_n(pontos_rio_centroide, 2000)
 
 
-# salvar no formato do r5r
+# salvar no formato do r5r -------------
+
 write.csv(pontos_rio_centroide, "r5/points_rio_todo.csv", 
           row.names = FALSE)
 

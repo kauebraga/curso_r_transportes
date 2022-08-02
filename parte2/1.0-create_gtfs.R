@@ -10,14 +10,15 @@ library(mapview)
 
 gtfs1 <- read_gtfs("data-raw/gtfs/gtfs_pcrj_2022-07-26_filt_ed.zip")
 gtfs2 <- read_gtfs("data-raw/gtfs/brt_2022-07.zip")
+gtfs3 <- read_gtfs("data-raw/gtfs/gtfs_vlt.zip")
 
 # o gtfs1 esta
 
 # juntar gtfs
-gtfs_atual <- merge_gtfs(gtfs1, gtfs2,
+gtfs_atual <- merge_gtfs(gtfs1, gtfs2, gtfs3,
                          files = c("agency", "calendar", "calendar_dates", "frequencies", "routes", "shapes",
                                    "stop_times", "stops", "trips"),
-                         prefix = c("bus", "brt"))
+                         prefix = c("bus", "brt", "vlt"))
 # criar diretorio
 dir.create("data/gtfs", recursive = TRUE)
 

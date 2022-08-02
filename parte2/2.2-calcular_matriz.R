@@ -2,16 +2,15 @@
 # arquivo de GTFS
 
 # carregar bibliotecas
-options(java.parameters = '-Xmx12G') # vai depender da memoria da maquina de cada um
+options(java.parameters = '-Xmx8G') # vai depender da memoria da maquina de cada um
 library(dplyr)
 library(r5r)
 library(data.table)
-library(readr) # install.packages('readr)
 
 
 # 1) Abrir pontos ------------------
 
-pontos_rio <- readr::read_csv("r5/points_rio_todo.csv")
+pontos_rio <- data.table::fread("r5/points_rio_todo.csv")
 
 
 # 2) Definir parametros de roteamento do r5r -------------------------------------------------------
@@ -58,6 +57,7 @@ draws_per_minute <- 1
 
 # criar network to r5r (so necessario 1 vez)
 r5r_core <- setup_r5(data_path = "r5/rio_atual", verbose = FALSE)
+# olhar arquivo network_settings.json na pasta
 
 
 # 3.1) calculate a travel time matrix
@@ -69,13 +69,15 @@ ttm1 <- travel_time_matrix(r5r_core = r5r_core,
                            departure_datetime = departure_datetime,
                            max_walk_time = 60,
                            max_trip_duration = max_trip_duration,
-                           time_window = 1,
-                           draws_per_minute = 1)
+                           time_window = time_window,
+                           draws_per_minute = draws_per_minute)
 a1 <- Sys.time()
 a1 - a
 # checar a quantidade de pontos que o r5r retornou
 unique(ttm1$from_id) %>% length()
-
+# checar a quantidade de pontos alcancados por cada origem
+pontos_por_origem <- ttm1 %>%
+  count(from_id)
 
 # 2 - ttmatrix - GTFS modificado
 

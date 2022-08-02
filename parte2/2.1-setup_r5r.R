@@ -67,8 +67,8 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 rio_pop <- aopdata::read_landuse(city = "rio")
 # selecionar variaveis (pop eh a P001)
 rio_pop <- select(rio_pop, id_hex, P001) %>%
-  # selecionar somente as com pop
-  filter(P001 > 0)
+  # selecionar somente as com pop maior que 10 habitantes
+  filter(P001 > 20)
 # filtrar essas nos pontos
 pontos_rio_centroide <- pontos_rio_centroide %>%
   filter(id %in% rio_pop$id_hex)

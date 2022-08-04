@@ -44,6 +44,8 @@ hex_orig <- hex_rio %>% dplyr::select(id_hex,
 
 # Filtrar apenas colunas com info de uso do solo no destino
 hex_dest <- hex_rio %>% dplyr::select(id_hex, 
+                                      # variaveis de emprego
+                                      empregos_total = T001,
                                       # variaveis de saude, 
                                       saude_total = S001, saude_baixa = S002, saude_media = S003, saude_alta = S004,
                                       # variaveis de educacao

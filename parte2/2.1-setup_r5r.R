@@ -25,8 +25,8 @@ file.copy(from = "data-raw/rio_2020.osm.pbf"   , to = "r5/rio_filtrado")
 file.copy(from = "data-raw/topografia3_rio.tif", to = "r5/rio_filtrado")
 
 # copiar arquivos de gtfs
-file.copy(from = "data/gtfs/gtfs_rio_atual.zip",    to = "r5/rio_atual")
-file.copy(from = "data/gtfs/gtfs_rio_filtrado.zip", to = "r5/rio_filtrado")
+file.copy(from = "data/gtfs/gtfs_rio_atual.zip",    to = "r5/rio_atual", overwrite = TRUE)
+file.copy(from = "data/gtfs/gtfs_rio_filtrado.zip", to = "r5/rio_filtrado", overwrite = TRUE)
 
 
 
@@ -54,8 +54,6 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
   st_set_geometry(NULL)
 
 
-
-
 # ADD FILTRO PARA POPULACAO -------------------
 
 # selecionar e renomear colunas para o r5
@@ -64,11 +62,12 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 
 
 # pegar pop
-rio_pop <- aopdata::read_landuse(city = "rio")
+rio_pop <- aopdata::read_population(city = "rio")
+# mapview(rio_pop, zcol = "P001")
 # selecionar variaveis (pop eh a P001)
 rio_pop <- select(rio_pop, id_hex, P001) %>%
   # selecionar somente as com pop maior que 10 habitantes
-  filter(P001 > 20)
+  filter(P001 > 100)
 # filtrar essas nos pontos
 pontos_rio_centroide <- pontos_rio_centroide %>%
   filter(id %in% rio_pop$id_hex)

@@ -2,7 +2,7 @@
 # arquivo de GTFS
 
 # carregar bibliotecas
-options(java.parameters = '-Xmx8G') # vai depender da memoria da maquina de cada um
+options(java.parameters = '-Xmx12G') # vai depender da memoria da maquina de cada um
 library(dplyr)
 library(r5r)
 library(data.table)
@@ -14,6 +14,7 @@ pontos_rio <- data.table::fread("r5/points_rio_todo.csv")
 
 
 # 2) Definir parametros de roteamento do r5r -------------------------------------------------------
+
 # checar valor de data no gtfs
 gtfs <- gtfstools::read_gtfs("r5/rio_atual/gtfs_rio_atual.zip")
 calendar <- gtfs$calendar
@@ -28,11 +29,12 @@ time <- "06:00:00"
 
 # setar argumentos ----------
 # definir os modos de transporte do roteamento
+?travel_time_matrix
 mode <- c("WALK", "TRANSIT")
 # definir o tempo maximo de caminhada da origem ate a parada de onibus / da parada de onibus pro destino
 max_walk_time <- 30  # minutes
 # definir o tempo maximo da viagem
-max_trip_duration <- 180 # minutes
+max_trip_duration <- 120 # minutes
 # compor o dia e a hora da viagem
 departure <- paste0(date, " ", time)
 departure_datetime <- as.POSIXct(departure, format = "%d-%m-%Y %H:%M:%S")
@@ -56,7 +58,10 @@ draws_per_minute <- 1
 # 1 - ttmatrix - GTFS atual 
 
 # criar network to r5r (so necessario 1 vez)
+a <- Sys.time()
 r5r_core <- setup_r5(data_path = "r5/rio_atual", verbose = FALSE)
+a1 <- Sys.time()
+a1 - a
 # olhar arquivo network_settings.json na pasta
 
 
@@ -67,7 +72,7 @@ ttm1 <- travel_time_matrix(r5r_core = r5r_core,
                            destinations = pontos_rio,
                            mode = mode,
                            departure_datetime = departure_datetime,
-                           max_walk_time = 60,
+                           max_walk_time = max_walk_time,
                            max_trip_duration = max_trip_duration,
                            time_window = time_window,
                            draws_per_minute = draws_per_minute)
@@ -79,6 +84,10 @@ unique(ttm1$from_id) %>% length()
 pontos_por_origem <- ttm1 %>%
   count(from_id)
 
+saveRDS(ttm1, "data/ttmatrix_atual.rds")
+rm(ttm1)
+gc()
+
 # 2 - ttmatrix - GTFS modificado
 
 # criar network to r5r (so necessario 1 vez)
@@ -89,7 +98,7 @@ ttm2 <- travel_time_matrix(r5r_core = r5r_core,
                            destinations = pontos_rio,
                            mode = mode,
                            departure_datetime = departure_datetime,
-                           max_walk_time = 60,
+                           max_walk_time = 30,
                            max_trip_duration = max_trip_duration,
                            time_window = 1,
                            draws_per_minute = 1)
@@ -98,13 +107,14 @@ ttm2 <- travel_time_matrix(r5r_core = r5r_core,
 ttm <- full_join(ttm1, ttm2,
                  by = c("from_id", "to_id"),
                  suffix = c("_atual", "_filtrado"))
-
+ttm %>% filter(is.na(travel_time_p50_atual)) %>% nrow()
+ttm %>% filter(is.na(travel_time_p50_filtrado)) %>% nrow()
 
 # renomear variaveis
 ttm <- ttm %>% 
   mutate(city = "rio", mode = "tp") %>%
   dplyr::select(city, mode, origin = from_id, destination = to_id, 
-                ttime_atual = travel_time_atual, ttime_filtrado = travel_time_filtrado)
+                ttime_atual = travel_time_p50_atual, ttime_filtrado = travel_time_p50_filtrado)
 
 
 

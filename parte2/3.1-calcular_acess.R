@@ -52,11 +52,11 @@ hex_dest <- hex_rio %>% dplyr::select(id_hex,
 
 # Join dados de origem na matrix de tempo de viagem
 ttmatrix <- left_join(ttmatrix, hex_orig,
-                      by = c("origin" = "id_hex"))
+                      by = c("from_id" = "id_hex"))
 
 # Merge dados de destino na matrix de tempo de viagem
 ttmatrix <-  left_join(ttmatrix, hex_dest,
-                       by = c("destination" = "id_hex"))
+                       by = c("to_id" = "id_hex"))
 
 
 
@@ -64,24 +64,26 @@ ttmatrix <-  left_join(ttmatrix, hex_dest,
 
 acess_atual <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
-  filter(ttime_atual <= 60) %>%
+  filter(travel_time_p50_atual <= 60) %>%
   # agrupar pela origem
-  group_by(origin) %>%
+  group_by(from_id) %>%
   # calcular a soma das oportunidades nos destinos
-  summarise(acess_saude_total = sum(saude_total, na.rm = TRUE),
+  summarise(
+    # acess_empregos
+    acess_saude_total = sum(saude_total, na.rm = TRUE),
             acess_edu_total = sum(edu_total, na.rm = TRUE))
 
-acess_2023 <- ttmatrix %>%
+acess_filtrado <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
-  filter(ttime_2023 <= 60) %>%
+  filter(travel_time_p50_filtrado <= 60) %>%
   # agrupar pela origem
-  group_by(origin) %>%
+  group_by(from_id) %>%
   # calcular a soma das oportunidades nos destinos
   summarise(acess_saude_total = sum(saude_total, na.rm = TRUE),
             acess_edu_total = sum(edu_total, na.rm = TRUE))
 
 
 # juntar arquivos
-acess <- left_join(acess_atual, acess_2023,
-                   by = "origin",
-                   suffix = c("_atual", "_2023"))
+acess <- left_join(acess_atual, acess_filtrado,
+                   by = "from_id",
+                   suffix = c("_atual", "_filtrado"))

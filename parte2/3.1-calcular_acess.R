@@ -54,11 +54,11 @@ hex_dest <- hex_rio %>% dplyr::select(id_hex,
 
 # Join dados de origem na matrix de tempo de viagem
 ttmatrix <- left_join(ttmatrix, hex_orig,
-                      by = c("from_id" = "id_hex"))
+                      by = c("origin" = "id_hex"))
 
 # Merge dados de destino na matrix de tempo de viagem
 ttmatrix <-  left_join(ttmatrix, hex_dest,
-                       by = c("to_id" = "id_hex"))
+                       by = c("destination" = "id_hex"))
 
 
 
@@ -66,26 +66,44 @@ ttmatrix <-  left_join(ttmatrix, hex_dest,
 
 acess_atual <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
-  filter(travel_time_p50_atual <= 60) %>%
+  filter(ttime_atual <= 60) %>%
   # agrupar pela origem
-  group_by(from_id) %>%
+  group_by(origin) %>%
   # calcular a soma das oportunidades nos destinos
   summarise(
     # acess_empregos
+    acess_empregos_total = sum(empregos_total, na.rm = TRUE),
     acess_saude_total = sum(saude_total, na.rm = TRUE),
-            acess_edu_total = sum(edu_total, na.rm = TRUE))
+    acess_edu_total = sum(edu_total, na.rm = TRUE)) %>%
+  ungroup() %>%
+  # identificar tipo
+  mutate(tipo = "atual")
 
 acess_filtrado <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
-  filter(travel_time_p50_filtrado <= 60) %>%
+  filter(ttime_filtrado <= 60) %>%
   # agrupar pela origem
-  group_by(from_id) %>%
+  group_by(origin) %>%
   # calcular a soma das oportunidades nos destinos
-  summarise(acess_saude_total = sum(saude_total, na.rm = TRUE),
-            acess_edu_total = sum(edu_total, na.rm = TRUE))
+  summarise(
+    acess_empregos_total = sum(empregos_total, na.rm = TRUE),
+    acess_saude_total = sum(saude_total, na.rm = TRUE),
+    acess_edu_total = sum(edu_total, na.rm = TRUE)) %>%
+  ungroup() %>%
+  # identificar tipo
+  mutate(tipo = "filtrado")
 
 
 # juntar arquivos
-acess <- left_join(acess_atual, acess_filtrado,
-                   by = "from_id",
-                   suffix = c("_atual", "_filtrado"))
+acess <- rbind(acess_atual, acess_filtrado)
+
+# trazer geometria de volta
+hex_rio <- readr::read_rds("data/hex_rio.rds") 
+acess <- left_join(
+  acess,
+  hex_rio %>% select(id_hex),
+  by = c("origin" = "id_hex")
+) %>% st_sf(crs = 4326)
+
+# salvar o arquivo
+saveRDS(acess, "acess_rio.rds")

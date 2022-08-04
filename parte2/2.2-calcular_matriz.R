@@ -47,7 +47,7 @@ departure_datetime <- as.POSIXct(departure, format = "%d-%m-%Y %H:%M:%S")
 # entao calcular uma mtariz por minuto suaviza isso
 
 # para fins de teste, vamos deixar como um (bem masi rapido)
-time_window <- 1
+time_window <- 60
 # esse argumento eh importante para gtfst tipo frequencies, e deixa o processametno bem amis rapido
 draws_per_minute <- 1
 

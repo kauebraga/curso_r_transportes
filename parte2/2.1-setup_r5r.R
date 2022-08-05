@@ -62,12 +62,12 @@ pontos_rio_centroide <- pontos_rio_centroide %>%
 
 
 # pegar pop
-rio_pop <- aopdata::read_population(city = "rio")
+rio_pop <- aopdata::read_landuse(city = "rio", year = 2019)
 # mapview(rio_pop, zcol = "P001")
 # selecionar variaveis (pop eh a P001)
-rio_pop <- select(rio_pop, id_hex, P001) %>%
+rio_pop <- select(rio_pop, id_hex, P001, T001, E001, S001) %>%
   # selecionar somente as com pop maior que 10 habitantes
-  filter(P001 > 100)
+  filter(P001 > 0 | T001 > 0 | E001 > 0 | S001 > 0)
 # filtrar essas nos pontos
 pontos_rio_centroide <- pontos_rio_centroide %>%
   filter(id %in% rio_pop$id_hex)

@@ -1,7 +1,7 @@
 # Esse script faz o calculo de indicadores de acessibilidade cumulativa para a matriz de tempo
 # de viagem calculada na etapa anterior
 
-library(data.table)
+library(data.table) # install.packages('data.table')
 library(dplyr)
 library(sf)
 
@@ -9,7 +9,7 @@ library(sf)
 # 0) Fazer download do arquivo com as oportunidades -------------------------------------------
 hex_rio <- aopdata::read_landuse(city = "rio", year = 2019, geometry = TRUE)
 # salvar
-readr::write_rds(hex_rio, "data/hex_rio.rds")
+saveRDS(hex_rio, "data/hex_rio.rds")
 
 
 # 1) Abrir arquivos ---------------------------------------------------------------------------
@@ -18,6 +18,10 @@ ttmatrix <- fread("data/ttmatrix_rio.csv")
 hex_rio <- readr::read_rds("data/hex_rio.rds") %>% 
   # deletar a geometria para agilizar o processamento - nao vamos precisar dela agora
   st_set_geometry(NULL)
+hex_rio <- hex_rio %>%
+  filter(year == 2019)
+
+# mapview(hex_rio, zcol = "P001")
 
 # variaveis a serem selecionadas
 help("read_landuse", "aopdata")
@@ -68,13 +72,19 @@ acess_atual <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
   filter(ttime_atual <= 60) %>%
   # agrupar pela origem
+  mutate(un = 1) %>%
   group_by(origin) %>%
   # calcular a soma das oportunidades nos destinos
   summarise(
     # acess_empregos
     acess_empregos_total = sum(empregos_total, na.rm = TRUE),
     acess_saude_total = sum(saude_total, na.rm = TRUE),
-    acess_edu_total = sum(edu_total, na.rm = TRUE)) %>%
+    acess_edu_total = sum(edu_total, na.rm = TRUE),
+    acess_saude_baixa = sum(saude_baixa, na.rm = TRUE),
+    acess_saude_alta = sum(saude_alta, na.rm = TRUE),
+    acess_un = sum(un, na.rm = TRUE)
+    
+    ) %>%
   ungroup() %>%
   # identificar tipo
   mutate(tipo = "atual")
@@ -82,13 +92,17 @@ acess_atual <- ttmatrix %>%
 acess_filtrado <- ttmatrix %>%
   # excluir os tempos de viagem menor que 60 minutos
   filter(ttime_filtrado <= 60) %>%
+  mutate(un = 1) %>%
   # agrupar pela origem
   group_by(origin) %>%
   # calcular a soma das oportunidades nos destinos
   summarise(
     acess_empregos_total = sum(empregos_total, na.rm = TRUE),
     acess_saude_total = sum(saude_total, na.rm = TRUE),
-    acess_edu_total = sum(edu_total, na.rm = TRUE)) %>%
+    acess_edu_total = sum(edu_total, na.rm = TRUE),
+    acess_saude_baixa = sum(saude_baixa, na.rm = TRUE),
+    acess_saude_alta = sum(saude_alta, na.rm = TRUE),
+    acess_un = sum(un, na.rm = TRUE)) %>%
   ungroup() %>%
   # identificar tipo
   mutate(tipo = "filtrado")
@@ -99,6 +113,9 @@ acess <- rbind(acess_atual, acess_filtrado)
 
 # trazer geometria de volta
 hex_rio <- readr::read_rds("data/hex_rio.rds") 
+hex_rio <- hex_rio %>%
+  filter(year == 2019)
+
 acess <- left_join(
   acess,
   hex_rio %>% select(id_hex),
@@ -106,4 +123,4 @@ acess <- left_join(
 ) %>% st_sf(crs = 4326)
 
 # salvar o arquivo
-saveRDS(acess, "acess_rio.rds")
+saveRDS(acess, "data/acess_rio.rds")

@@ -98,10 +98,12 @@ ttm2 <- travel_time_matrix(r5r_core = r5r_core,
                            destinations = pontos_rio,
                            mode = mode,
                            departure_datetime = departure_datetime,
-                           max_walk_time = 30,
+                           max_walk_time = max_walk_time,
                            max_trip_duration = max_trip_duration,
-                           time_window = 1,
-                           draws_per_minute = 1)
+                           time_window = time_window,
+                           draws_per_minute = draws_per_minute)
+
+# prob <- "89a8a029ed7ffff"
 
 # juntar matrizes
 ttm <- full_join(ttm1, ttm2,
